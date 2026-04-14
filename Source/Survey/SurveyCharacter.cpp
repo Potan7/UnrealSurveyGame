@@ -41,6 +41,16 @@ void ASurveyCharacter::BeginPlay()
 			ClothesComp->SetLeaderPoseComponent(BodyMesh);
 		}
 	}
+	
+	if (TargetMouseActor)
+	{
+		MouseMesh = TargetMouseActor->FindComponentByClass<USkeletalMeshComponent>();
+		if (MouseMesh)
+		{
+			// 게임 시작 시 마우스의 현재 상대 위치를 기준점으로 저장합니다.
+			InitialMouseLocation = MouseMesh->GetRelativeLocation();
+		}
+	}
 }
 
 // Called every frame
@@ -55,16 +65,23 @@ void ASurveyCharacter::Tick(float DeltaTime)
 	{
 		PC->GetInputMouseDelta(MouseDeltaX, MouseDeltaY);
 	}
-	
-	if (!TargetMouseActor) return;
-	if (USkeletalMeshComponent* MouseMesh = TargetMouseActor->FindComponentByClass<USkeletalMeshComponent>())
+
+	if (MouseMesh)
 	{
-		if (MouseMesh && (MouseDeltaX != 0.0f || MouseDeltaY != 0.0f))
+		if (MouseDeltaX != 0.0f || MouseDeltaY != 0.0f)
 		{
-			constexpr float MouseSpeed = 2.0f;
-			const FVector MouseMoveDelta = FVector(MouseDeltaY, MouseDeltaX, 0.0f) * MouseSpeed;
-		
-			MouseMesh->AddRelativeLocation(MouseMoveDelta);
+			// 현재 위치에서 이동량을 먼저 계산합니다.
+			FVector CurrentLocation = MouseMesh->GetRelativeLocation();
+			CurrentLocation.X += MouseDeltaY * MouseSpeed;
+			CurrentLocation.Y += MouseDeltaX * MouseSpeed;
+			
+			// 초기 위치(InitialMouseLocation)를 기준으로 범위를 제한합니다.
+			// 예: 초기 위치가 100이고 Min이 -50이면, 하한선은 50이 됩니다.
+			CurrentLocation.X = FMath::Clamp(CurrentLocation.X, InitialMouseLocation.X + MouseMinBounds.X, InitialMouseLocation.X + MouseMaxBounds.X);
+			CurrentLocation.Y = FMath::Clamp(CurrentLocation.Y, InitialMouseLocation.Y + MouseMinBounds.Y, InitialMouseLocation.Y + MouseMaxBounds.Y);
+			
+			// 제한된 최종 위치를 적용합니다.
+			MouseMesh->SetRelativeLocation(CurrentLocation);
 		}
 	
 
