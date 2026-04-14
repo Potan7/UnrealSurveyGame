@@ -23,10 +23,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	FVector MouseMaxBounds = FVector(50.0f, 50.0f, 0);
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	FVector2D MonitorRes = FVector2D(1920.0f, 1080.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	class USurveyMonitorWidget* MonitorWidgetInstance;
+
 	FVector InitialMouseLocation;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	float MouseSpeed = 2.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	AActor* TargetMonitorActor;
 
 protected:
 	// Called when the game starts or when spawned
@@ -41,8 +50,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Body")
 	class USkeletalMeshComponent* BodyMesh;
 	
-	
+	UPROPERTY()
 	class USkeletalMeshComponent* MouseMesh;
+	UPROPERTY()
+	class USurveyMonitorWidget* MonitorWidget;
 
 public:	
 	// Called every frame
