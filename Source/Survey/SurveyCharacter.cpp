@@ -7,6 +7,7 @@
 #include "SurveyMonitorWidget.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/WidgetInteractionComponent.h"
 
 // Sets default values
 ASurveyCharacter::ASurveyCharacter()
@@ -18,10 +19,15 @@ ASurveyCharacter::ASurveyCharacter()
 	RootComponent = Root;
 	
 	FaceCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FaceCamera"));
-	FaceCamera->SetupAttachment(Root);
+	FaceCamera->SetupAttachment(RootComponent);
 	
 	BodyMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("BodyMesh"));
-	BodyMesh->SetupAttachment(Root);
+	BodyMesh->SetupAttachment(RootComponent);
+	
+	WidgetInteraction = CreateDefaultSubobject<UWidgetInteractionComponent>(TEXT("WidgetInteraction"));
+	WidgetInteraction->SetupAttachment(RootComponent);
+	WidgetInteraction->InteractionSource = EWidgetInteractionSource::World;
+	WidgetInteraction->InteractionDistance = 100.0f;
 }
 
 // Called when the game starts or when spawned
@@ -94,7 +100,7 @@ void ASurveyCharacter::Tick(float DeltaTime)
 			MouseMesh->SetRelativeLocation(CurrentLocation);
 
 			// --- 모니터 위젯 업데이트 추가 (비율 매핑 방식) ---
-			if (MonitorWidget)
+			if (MonitorWidget && WidgetInteraction)
 			{
 				// 1. 현재 마우스가 자신의 가동 범위 내에서 어디에 위치하는지 0~1 사이 비율로 계산합니다.
 				// MouseMinBounds ~ MouseMaxBounds 범위를 0.0 ~ 1.0으로 정규화(Normalize)합니다.
@@ -111,6 +117,22 @@ void ASurveyCharacter::Tick(float DeltaTime)
 				UI_CursorPos.Y = (1.0f - AlphaY) * MonitorRes.Y; 
 
 				MonitorWidget->UpdateCursorPosition(UI_CursorPos);
+				
+				if (const auto* WidgetComp = TargetMouseActor->FindComponentByClass<UWidgetComponent>())
+				{
+					FTransform WidgetTransform = WidgetComp->GetComponentTransform();
+					FVector2D DrawSize = WidgetComp->GetDrawSize();
+					
+					float LocalX = UI_CursorPos.X - (DrawSize.X * 0.5f);
+					float LocalY = UI_CursorPos.Y - (DrawSize.Y * 0.5f);
+					
+					FVector LocalPos(0.0f, LocalX, -LocalY);
+					
+					FVector WorldInteractionPos = WidgetTransform.TransformPosition(LocalPos);
+					
+					WidgetInteraction->SetWorldLocation(WorldInteractionPos);
+					WidgetInteraction->SetWorldRotation(WidgetTransform.GetRotation());
+				}
 			}
 		}
 	
@@ -127,13 +149,14 @@ void ASurveyCharacter::Tick(float DeltaTime)
 			AnimInstance->RightHandTarget = RelativeTargetTransform; 
 			AnimInstance->bEnableHandIK = true;
 		}
+		
+		if (GetWorld()->GetFirstPlayerController()->WasInputKeyJustPressed(EKeys::SpaceBar))
+		{
+			if (MonitorWidget)
+			{
+				MonitorWidget->ShowNextSurvey();
+			}
+		}
 	}
-}
-
-// Called to bind functionality to input
-void ASurveyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 

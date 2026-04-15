@@ -2,10 +2,13 @@
 
 
 #include "SurveyMonitorWidget.h"
+
+#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/TextBlock.h"
 
-void USurveyMonitorWidget::NativeConstruct()
+ void USurveyMonitorWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
@@ -14,9 +17,28 @@ void USurveyMonitorWidget::NativeConstruct()
 	{
 		MouseSlot = Cast<UCanvasPanelSlot>(Mouse->Slot);
 	}
+	
+	if (SurveyDataTable)
+	{
+		SurveyRowNames = SurveyDataTable->GetRowNames();
+	}
+ 	
+ 	SurveyIndex = -1;
+ 	ShowNextSurvey();
 }
 
-void USurveyMonitorWidget::UpdateCursorPosition(const FVector2D NewPosition) const
+ void USurveyMonitorWidget::UpdateMonitorUI(const FSurveyData& SurveyData)
+ {
+	if (Question)
+	{
+		const FText SurveyText = FText::FromStringTable(TEXT("/Game/Data/ST_Question.ST_Question"), FTextKey(SurveyData.Question.ToString()));
+		Question->SetText(SurveyText);
+		UE_LOG(LogTemp, Warning, TEXT("Updated Question: %s"), *SurveyData.Question.ToString());
+	}
+ }
+
+
+ void USurveyMonitorWidget::UpdateCursorPosition(const FVector2D NewPosition) const
 {
 	// 미리 저장된 슬롯이 유효한지만 체크하고 바로 위치를 설정합니다.
 	if (MouseSlot)
@@ -24,3 +46,20 @@ void USurveyMonitorWidget::UpdateCursorPosition(const FVector2D NewPosition) con
 		MouseSlot->SetPosition(NewPosition);
 	}
 }
+
+ void USurveyMonitorWidget::ShowNextSurvey()
+ {
+	if (!SurveyDataTable || SurveyRowNames.Num() == 0) return;
+	
+	SurveyIndex++;
+	if (SurveyIndex >= SurveyRowNames.Num())
+	{
+		return;
+	}
+
+	const FName SurveyRowName = SurveyRowNames[SurveyIndex];
+	if (const FSurveyData* SurveyData = SurveyDataTable->FindRow<FSurveyData>(SurveyRowName, TEXT("Next Survey Context")))
+	{
+		UpdateMonitorUI(*SurveyData);
+	}
+ }

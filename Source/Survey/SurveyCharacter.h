@@ -37,9 +37,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	AActor* TargetMonitorActor;
 
-protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class USceneComponent* Root;
@@ -54,12 +54,11 @@ protected:
 	class USkeletalMeshComponent* MouseMesh;
 	UPROPERTY()
 	class USurveyMonitorWidget* MonitorWidget;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	class UWidgetInteractionComponent* WidgetInteraction;
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 };
