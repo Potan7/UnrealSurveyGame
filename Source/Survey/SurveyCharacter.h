@@ -54,6 +54,8 @@ protected:
 	class USkeletalMeshComponent* MouseMesh;
 	UPROPERTY()
 	class USurveyMonitorWidget* MonitorWidget;
+	UPROPERTY()
+	class UWidgetComponent* MonitorWidgetComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	class UWidgetInteractionComponent* WidgetInteraction;
