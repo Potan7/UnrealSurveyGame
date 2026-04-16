@@ -46,6 +46,9 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* Question;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UButton* NextButton;
 
 	UPROPERTY()
 	class UCanvasPanelSlot* MouseSlot;
@@ -55,6 +58,22 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category= "Data")
 	int32 SurveyIndex = 0;
+	
+	// 버튼 위젯들을 배열로 관리 (BP에서 할당)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monitor")
+	TArray<UUserWidget*> ButtonWidgets;
+	
+	// 현재 선택된 인덱스
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monitor")
+	int32 SelectedIndex = -1;
+	
+	// 버튼이 클릭되었을 때 호출되는 함수
+	UFUNCTION(BlueprintCallable, Category = "Monitor")
+	void HandleButtonClick(const int32 ClickedIndex);
+	
+	// 모든 버튼의 비주얼을 새로고침하는 함수 (BP에서 구현)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Survey")
+	void RefreshButtonVisuals();
 	
 	TArray<FName> SurveyRowNames;
 };

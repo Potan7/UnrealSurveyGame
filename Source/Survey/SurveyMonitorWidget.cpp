@@ -23,6 +23,11 @@
 		SurveyRowNames = SurveyDataTable->GetRowNames();
 	}
  	
+ 	if (NextButton)
+ 	{
+ 		NextButton->SetVisibility(ESlateVisibility::Hidden);
+ 	}
+ 	
  	SurveyIndex = -1;
  	ShowNextSurvey();
 }
@@ -35,6 +40,15 @@
 		Question->SetText(SurveyText);
 		UE_LOG(LogTemp, Warning, TEXT("Updated Question: %s"), *SurveyData.Question.ToString());
 	}
+ }
+
+ void USurveyMonitorWidget::HandleButtonClick(const int32 ClickedIndex)
+ {
+ 	SelectedIndex = ClickedIndex;
+ 	
+ 	RefreshButtonVisuals();
+ 	
+    // UE_LOG(LogTemp, Warning, TEXT("Button %d clicked, SelectedIndex set to %d"), ClickedIndex, SelectedIndex);
  }
 
 

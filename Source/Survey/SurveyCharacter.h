@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputActionValue.h"
 #include "SurveyCharacter.generated.h"
 
 UCLASS()
@@ -59,8 +60,23 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	class UWidgetInteractionComponent* WidgetInteraction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	class UInputAction* MouseClickAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	class UInputAction* MouseMoveAction;
+	
+	FVector2D MouseInputDelta;
+	
+	void OnMousePressed(const FInputActionValue& Value);
+	void OnMouseRelease(const FInputActionValue& Value);
+	
+	void OnMouseMove(const FInputActionValue& Value);
 
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	
 };

@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SurveyCharacter.h"
+
+#include "EnhancedInputComponent.h"
 #include "SurveyCharacterAnimInstance.h"
 #include "SurveyMonitorWidget.h"
 #include "Camera/CameraComponent.h"
@@ -86,18 +88,37 @@ void ASurveyCharacter::Tick(float DeltaTime)
 
     if (MouseMesh)
     {
-       // 1. 마우스 이동 처리
-       if (MouseDeltaX != 0.0f || MouseDeltaY != 0.0f)
-       {
+       // 1. 마우스 이동 처리 (마우스가 움직이고 있을 때만)
+      if (!MouseInputDelta.IsNearlyZero())
+      {
           FVector CurrentLocation = MouseMesh->GetRelativeLocation();
-          CurrentLocation.X += MouseDeltaY * MouseSpeed;
-          CurrentLocation.Y += MouseDeltaX * MouseSpeed;
+          
+          // 향상된 입력의 Y는 위가 (+), X는 오른쪽이 (+)
+          // 기존 코드의 축 로직에 맞춰 적용:
+          CurrentLocation.X += MouseInputDelta.Y * MouseSpeed; 
+          CurrentLocation.Y += MouseInputDelta.X * MouseSpeed;
           
           CurrentLocation.X = FMath::Clamp(CurrentLocation.X, InitialMouseLocation.X + MouseMinBounds.X, InitialMouseLocation.X + MouseMaxBounds.X);
           CurrentLocation.Y = FMath::Clamp(CurrentLocation.Y, InitialMouseLocation.Y + MouseMinBounds.Y, InitialMouseLocation.Y + MouseMaxBounds.Y);
           
           MouseMesh->SetRelativeLocation(CurrentLocation);
-       }
+
+          // 중요: 사용한 입력값은 초기화해줘야 멈췄을 때 마우스가 흐르지 않습니다.
+          MouseInputDelta = FVector2D::ZeroVector;
+      }
+       
+       // // 1. 마우스 이동 처리
+       // if (MouseDeltaX != 0.0f || MouseDeltaY != 0.0f)
+       // {
+       //    FVector CurrentLocation = MouseMesh->GetRelativeLocation();
+       //    CurrentLocation.X += MouseDeltaY * MouseSpeed;
+       //    CurrentLocation.Y += MouseDeltaX * MouseSpeed;
+       //    
+       //    CurrentLocation.X = FMath::Clamp(CurrentLocation.X, InitialMouseLocation.X + MouseMinBounds.X, InitialMouseLocation.X + MouseMaxBounds.X);
+       //    CurrentLocation.Y = FMath::Clamp(CurrentLocation.Y, InitialMouseLocation.Y + MouseMinBounds.Y, InitialMouseLocation.Y + MouseMaxBounds.Y);
+       //    
+       //    MouseMesh->SetRelativeLocation(CurrentLocation);
+       // }
 
        // 2. 위젯 및 인터랙션 업데이트 (마우스 이동 여부와 관계없이 매 프레임 실행)
        if (MonitorWidget && WidgetInteraction && MonitorWidgetComponent)
@@ -157,4 +178,39 @@ void ASurveyCharacter::Tick(float DeltaTime)
           }
        }
     }
+}
+
+void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
+{
+   if (WidgetInteraction)
+   {
+      WidgetInteraction->PressPointerKey(EKeys::LeftMouseButton);
+   }
+}
+
+void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)
+{
+   if (WidgetInteraction)
+   {
+      WidgetInteraction->ReleasePointerKey(EKeys::LeftMouseButton);
+   }
+}
+
+void ASurveyCharacter::OnMouseMove(const FInputActionValue& Value)
+{
+      MouseInputDelta = Value.Get<FVector2D>();
+}
+
+void ASurveyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+   Super::SetupPlayerInputComponent(PlayerInputComponent);
+   
+   if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
+   {
+      EnhancedInputComponent->BindAction(MouseClickAction, ETriggerEvent::Started, this, &ASurveyCharacter::OnMousePressed);
+      EnhancedInputComponent->BindAction(MouseClickAction, ETriggerEvent::Completed, this, &ASurveyCharacter::OnMouseRelease);
+      
+      EnhancedInputComponent->BindAction(MouseMoveAction, ETriggerEvent::Triggered, this, &ASurveyCharacter::OnMouseMove);
+   }
+   
 }
