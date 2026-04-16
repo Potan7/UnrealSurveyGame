@@ -35,9 +35,14 @@ void USurveyMonitorWidget::NativeConstruct()
 	{
 		WidgetSwitch->SetActiveWidgetIndex(0);
 	}
+	
+	if (BeginButton)
+	{
+		BeginButton->OnClicked.AddDynamic(this, &USurveyMonitorWidget::ShowNextSurvey);
+	}
 
 	SurveyIndex = -1;
-	ShowNextSurvey();
+	SetTitleScreen();
 }
 
 void USurveyMonitorWidget::UpdateMonitorUI(const FSurveyData& SurveyData)
@@ -95,6 +100,18 @@ void USurveyMonitorWidget::UpdateMonitorUI(const FSurveyData& SurveyData)
 			
 			GetWorld()->GetTimerManager().SetTimer(TypingTimerHandle, this, &USurveyMonitorWidget::EndingBegin, 2.5f, false);
 		}
+	}
+}
+
+void USurveyMonitorWidget::SetTitleScreen()
+{
+	if (WidgetSwitch)
+	{
+		WidgetSwitch->SetActiveWidgetIndex(3);
+	}
+	if (Question)
+	{
+		Question->SetText(FText::FromStringTable(TEXT("/Game/Data/ST_Question.ST_Question"), TEXT("Title")));
 	}
 }
 
@@ -288,6 +305,11 @@ void USurveyMonitorWidget::ShowNextSurvey()
 	if (!SurveyDataTable || SurveyRowNames.Num() == 0)
 	{
 		return;
+	}
+	
+	if (SurveyIndex == -1 && WidgetSwitch)
+	{
+		WidgetSwitch->SetActiveWidgetIndex(0);
 	}
 
 	SurveyIndex++;

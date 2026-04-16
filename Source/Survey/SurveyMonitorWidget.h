@@ -53,6 +53,9 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	void UpdateMonitorUI(const FSurveyData& SurveyData);
+	
+	// 최초 시작 화면
+	void SetTitleScreen();
 
 	UPROPERTY(meta = (BindWidget))
 	class UImage* Mouse;
@@ -68,6 +71,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	class UEditableTextBox* TextBox;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UButton* BeginButton;
 
 	UPROPERTY()
 	class UCanvasPanelSlot* MouseSlot;
@@ -79,7 +85,7 @@ protected:
 	UDataTable* SurveyDataTable;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category= "Data")
-	int32 SurveyIndex = 0;
+	int32 SurveyIndex = -1;
 	
 	// 버튼 위젯들을 배열로 관리 (BP에서 할당)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monitor")
