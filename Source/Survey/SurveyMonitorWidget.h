@@ -17,9 +17,6 @@ struct FSurveyData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName EventTrigger;	// 질문 시 발생할 이벤트
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float EventDelay;	// 이벤트 발생 지연 시간
-	
 };
 
 /**
@@ -37,6 +34,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monitor")
 	void ShowNextSurvey();
 	
+	const FName& GetCurrentEventTrigger() const { return CurrentEventTrigger; } 
+	const int& GetSelectedIndex() const { return SelectedIndex; }
+
+	UFUNCTION(BlueprintCallable, Category = "Monitor")
+	FVector2D GetButtonPosition(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Monitor")
+	FVector2D GetNextButtonPosition();
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Monitor")
+	class ASurveyCharacter* Character;
+	
 protected:
 	virtual void NativeConstruct() override;
 	void UpdateMonitorUI(const FSurveyData& SurveyData);
@@ -52,6 +61,9 @@ protected:
 
 	UPROPERTY()
 	class UCanvasPanelSlot* MouseSlot;
+	
+	// 현재 이벤트 트리거
+	FName CurrentEventTrigger;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
 	UDataTable* SurveyDataTable;

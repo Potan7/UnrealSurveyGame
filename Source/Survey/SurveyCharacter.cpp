@@ -69,7 +69,114 @@ void ASurveyCharacter::BeginPlay()
        if (MonitorWidgetComponent)
        {
           MonitorWidget = Cast<USurveyMonitorWidget>(MonitorWidgetComponent->GetWidget());
+          if (MonitorWidget)
+          {
+             MonitorWidget->Character = this;
+          }
        }
+    }
+}
+
+void ASurveyCharacter::StartForcedSequence(const TArray<FVector2D>& TargetUIPositions)
+{
+    ForcedTargets = TargetUIPositions;
+    CurrentTargetIndex = 0;
+    bIsForcedMoving = true;
+    bWaitAfterClick = false;
+    ForcedMoveTimer = 0.0f;
+}
+
+void ASurveyCharacter::UpdateForcedMovement(float DeltaTime)
+{
+    if (!bIsForcedMoving || CurrentTargetIndex >= ForcedTargets.Num())
+    {
+        bIsForcedMoving = false;
+        return;
+    }
+
+    if (bWaitAfterClick)
+    {
+        ForcedMoveTimer += DeltaTime;
+        if (ForcedMoveTimer > 0.05f) // 클릭 후 0.05초 대기
+        {
+            bWaitAfterClick = false;
+            ForcedMoveTimer = 0.0f;
+            CurrentTargetIndex++;
+        }
+        return;
+    }
+
+    const FVector2D TargetUIPos = ForcedTargets[CurrentTargetIndex];
+    
+    // 현재 마우스 위치를 UI 좌표로 변환하여 보간에 사용
+    const FVector CurrentLocation = MouseMesh->GetRelativeLocation();
+    const float AlphaY = (CurrentLocation.X - (InitialMouseLocation.X + MouseMinBounds.X)) / (MouseMaxBounds.X - MouseMinBounds.X);
+    const float AlphaX = (CurrentLocation.Y - (InitialMouseLocation.Y + MouseMinBounds.Y)) / (MouseMaxBounds.Y - MouseMinBounds.Y);
+
+    FVector2D CurrentUIPos;
+    CurrentUIPos.X = AlphaX * MonitorRes.X;
+    CurrentUIPos.Y = (1.0f - AlphaY) * MonitorRes.Y;
+
+    if (FVector2D::Distance(CurrentUIPos, TargetUIPos) < 10.0f)
+    {
+        // 대상 도달 시 마우스 메시 위치를 목표값으로 정확히 맞춤
+        MoveMouseToUIPosition(TargetUIPos);
+
+        // 중요: 클릭 직전에 인터랙션 위치를 최신화하여 시뮬레이션 클릭이 정확한 버튼을 누르게 함
+        if (WidgetInteraction && MonitorWidgetComponent)
+        {
+            const FVector TargetLocation = MouseMesh->GetRelativeLocation();
+            const float AY = (TargetLocation.X - (InitialMouseLocation.X + MouseMinBounds.X)) / (MouseMaxBounds.X - MouseMinBounds.X);
+            const float AX = (TargetLocation.Y - (InitialMouseLocation.Y + MouseMinBounds.Y)) / (MouseMaxBounds.Y - MouseMinBounds.Y);
+
+            const FVector2D DrawSize = MonitorWidgetComponent->GetDrawSize();
+            const FVector2D Pivot = MonitorWidgetComponent->GetPivot();
+            const float LY = (Pivot.X - AX) * DrawSize.X;
+            const float LZ = (AY - Pivot.Y) * DrawSize.Y;
+
+            const FVector LPos(0.0f, LY, LZ);
+            const FVector WPos = MonitorWidgetComponent->GetComponentTransform().TransformPosition(LPos);
+            
+            FHitResult ClickHit;
+            ClickHit.bBlockingHit = true;
+            ClickHit.Component = MonitorWidgetComponent;
+            ClickHit.ImpactPoint = WPos;
+            ClickHit.Location = WPos;
+            WidgetInteraction->SetCustomHitResult(ClickHit);
+        }
+        
+        SimulateClick();
+        bWaitAfterClick = true;
+        ForcedMoveTimer = 0.0f;
+    }
+    else
+    {
+        // 부드럽게 이동
+        FVector2D NextUIPos = FMath::Vector2DInterpTo(CurrentUIPos, TargetUIPos, DeltaTime, 16.0f);
+        MoveMouseToUIPosition(NextUIPos);
+    }
+}
+
+void ASurveyCharacter::MoveMouseToUIPosition(FVector2D UIPos)
+{
+    if (!MouseMesh) return;
+
+    float AlphaX = UIPos.X / MonitorRes.X;
+    float AlphaY = 1.0f - (UIPos.Y / MonitorRes.Y);
+    
+    FVector NewLocation = InitialMouseLocation;
+    NewLocation.X = AlphaY * (MouseMaxBounds.X - MouseMinBounds.X) + (InitialMouseLocation.X + MouseMinBounds.X);
+    NewLocation.Y = AlphaX * (MouseMaxBounds.Y - MouseMinBounds.Y) + (InitialMouseLocation.Y + MouseMinBounds.Y);
+    
+    MouseMesh->SetRelativeLocation(NewLocation);
+}
+
+void ASurveyCharacter::SimulateClick()
+{
+    if (WidgetInteraction)
+    {
+        WidgetInteraction->PressPointerKey(EKeys::LeftMouseButton);
+        WidgetInteraction->ReleasePointerKey(EKeys::LeftMouseButton);
     }
 }
 
@@ -77,26 +184,38 @@ void ASurveyCharacter::BeginPlay()
 void ASurveyCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    
-    float MouseDeltaX = 0.0f;
-    float MouseDeltaY = 0.0f;
-    
-    if (const auto* PC = Cast<APlayerController>(GetController()))
+
+    if (bIsForcedMoving)
     {
-       PC->GetInputMouseDelta(MouseDeltaX, MouseDeltaY);
+        UpdateForcedMovement(DeltaTime);
     }
 
-    if (MouseMesh)
+    if (MouseMesh && MonitorWidget)
     {
        // 1. 마우스 이동 처리 (마우스가 움직이고 있을 때만)
+      const float TargetModifier = bIsSensitivityReduced ? 0.4f : 1.0f;    
       if (!MouseInputDelta.IsNearlyZero())
       {
           FVector CurrentLocation = MouseMesh->GetRelativeLocation();
+
+         const FName& Event = MonitorWidget->GetCurrentEventTrigger();
+
+          if (Event == TEXT("Sensor"))
+          {
+             // UE_LOG(LogTemp, Warning, TEXT("Sensor event triggered: Reducing mouse sensitivity"));
+             bIsSensitivityReduced = true;
+          }
+         else if (Event == TEXT("Agree"))
+         {
+            // 강제 동의 이벤트
+         }
+         
+         CurrentModifier = FMath::FInterpTo(CurrentModifier, TargetModifier, DeltaTime, 1.2f);
           
           // 향상된 입력의 Y는 위가 (+), X는 오른쪽이 (+)
           // 기존 코드의 축 로직에 맞춰 적용:
-          CurrentLocation.X += MouseInputDelta.Y * MouseSpeed; 
-          CurrentLocation.Y += MouseInputDelta.X * MouseSpeed;
+          CurrentLocation.X += MouseInputDelta.Y * MouseSpeed * CurrentModifier; 
+          CurrentLocation.Y += MouseInputDelta.X * MouseSpeed * CurrentModifier;
           
           CurrentLocation.X = FMath::Clamp(CurrentLocation.X, InitialMouseLocation.X + MouseMinBounds.X, InitialMouseLocation.X + MouseMaxBounds.X);
           CurrentLocation.Y = FMath::Clamp(CurrentLocation.Y, InitialMouseLocation.Y + MouseMinBounds.Y, InitialMouseLocation.Y + MouseMaxBounds.Y);
@@ -121,7 +240,7 @@ void ASurveyCharacter::Tick(float DeltaTime)
        // }
 
        // 2. 위젯 및 인터랙션 업데이트 (마우스 이동 여부와 관계없이 매 프레임 실행)
-       if (MonitorWidget && WidgetInteraction && MonitorWidgetComponent)
+       if (WidgetInteraction && MonitorWidgetComponent)
        {
           const FVector CurrentLocation = MouseMesh->GetRelativeLocation();
           
@@ -182,6 +301,7 @@ void ASurveyCharacter::Tick(float DeltaTime)
 
 void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
 {
+   if (bIsForcedMoving) return;
    if (WidgetInteraction)
    {
       WidgetInteraction->PressPointerKey(EKeys::LeftMouseButton);
@@ -190,6 +310,7 @@ void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
 
 void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)
 {
+   if (bIsForcedMoving) return;
    if (WidgetInteraction)
    {
       WidgetInteraction->ReleasePointerKey(EKeys::LeftMouseButton);
@@ -198,6 +319,7 @@ void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)
 
 void ASurveyCharacter::OnMouseMove(const FInputActionValue& Value)
 {
+      if (bIsForcedMoving) return;
       MouseInputDelta = Value.Get<FVector2D>();
 }
 

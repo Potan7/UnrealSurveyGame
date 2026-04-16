@@ -41,7 +41,6 @@ public:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 protected:
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class USceneComponent* Root;
 	
@@ -57,6 +56,9 @@ protected:
 	class USurveyMonitorWidget* MonitorWidget;
 	UPROPERTY()
 	class UWidgetComponent* MonitorWidgetComponent;
+	
+	bool bIsSensitivityReduced = false;
+	float CurrentModifier = 1.0f;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	class UWidgetInteractionComponent* WidgetInteraction;
@@ -78,5 +80,20 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	void StartForcedSequence(const TArray<FVector2D>& TargetUIPositions);
+	bool IsForcedMoving() const { return bIsForcedMoving; }
+
+private:
+	bool bIsForcedMoving = false;
+	TArray<FVector2D> ForcedTargets;
+	int32 CurrentTargetIndex = 0;
+	
+	float ForcedMoveTimer = 0.0f;
+	bool bWaitAfterClick = false;
+
+	void UpdateForcedMovement(float DeltaTime);
+	void MoveMouseToUIPosition(FVector2D UIPos);
+	void SimulateClick();
 	
 };
