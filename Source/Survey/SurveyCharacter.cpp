@@ -77,13 +77,14 @@ void ASurveyCharacter::BeginPlay()
     }
 }
 
-void ASurveyCharacter::StartForcedSequence(const TArray<FVector2D>& TargetUIPositions)
+void ASurveyCharacter::StartForcedSequence(const TArray<FVector2D>& TargetUIPositions, float Speed)
 {
     ForcedTargets = TargetUIPositions;
     CurrentTargetIndex = 0;
     bIsForcedMoving = true;
     bWaitAfterClick = false;
     ForcedMoveTimer = 0.0f;
+    CurrentForcedSpeed = Speed;
 }
 
 void ASurveyCharacter::UpdateForcedMovement(float DeltaTime)
@@ -151,8 +152,8 @@ void ASurveyCharacter::UpdateForcedMovement(float DeltaTime)
     }
     else
     {
-        // 부드럽게 이동
-        FVector2D NextUIPos = FMath::Vector2DInterpTo(CurrentUIPos, TargetUIPos, DeltaTime, 16.0f);
+        // 부드럽게 이동 (설정된 속도 사용)
+        FVector2D NextUIPos = FMath::Vector2DInterpTo(CurrentUIPos, TargetUIPos, DeltaTime, CurrentForcedSpeed);
         MoveMouseToUIPosition(NextUIPos);
     }
 }
@@ -301,7 +302,7 @@ void ASurveyCharacter::Tick(float DeltaTime)
 
 void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
 {
-   if (bIsForcedMoving) return;
+   if (bIsForcedMoving || !bEnableMouseInput) return;
    if (WidgetInteraction)
    {
       WidgetInteraction->PressPointerKey(EKeys::LeftMouseButton);
@@ -310,7 +311,7 @@ void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
 
 void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)
 {
-   if (bIsForcedMoving) return;
+   if (bIsForcedMoving || !bEnableMouseInput) return;
    if (WidgetInteraction)
    {
       WidgetInteraction->ReleasePointerKey(EKeys::LeftMouseButton);
@@ -319,7 +320,7 @@ void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)
 
 void ASurveyCharacter::OnMouseMove(const FInputActionValue& Value)
 {
-      if (bIsForcedMoving) return;
+      if (bIsForcedMoving || !bEnableMouseInput) return;
       MouseInputDelta = Value.Get<FVector2D>();
 }
 

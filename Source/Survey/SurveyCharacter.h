@@ -81,13 +81,16 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void StartForcedSequence(const TArray<FVector2D>& TargetUIPositions);
+	void StartForcedSequence(const TArray<FVector2D>& TargetUIPositions, float Speed = 16.0f);
 	bool IsForcedMoving() const { return bIsForcedMoving; }
+	void SetMouseInput(const bool bSet) { bEnableMouseInput = bSet; }
 
 private:
+	bool bEnableMouseInput = true;
 	bool bIsForcedMoving = false;
 	TArray<FVector2D> ForcedTargets;
 	int32 CurrentTargetIndex = 0;
+	float CurrentForcedSpeed = 16.0f;
 	
 	float ForcedMoveTimer = 0.0f;
 	bool bWaitAfterClick = false;

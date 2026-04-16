@@ -46,6 +46,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Monitor")
 	class ASurveyCharacter* Character;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ending")
+	TSubclassOf<UUserWidget> EndingWidgetClass;
+	
+	
 protected:
 	virtual void NativeConstruct() override;
 	void UpdateMonitorUI(const FSurveyData& SurveyData);
@@ -58,6 +62,12 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	class UButton* NextButton;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UWidgetSwitcher* WidgetSwitch;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UEditableTextBox* TextBox;
 
 	UPROPERTY()
 	class UCanvasPanelSlot* MouseSlot;
@@ -88,4 +98,22 @@ protected:
 	void RefreshButtonVisuals();
 	
 	TArray<FName> SurveyRowNames;
+	
+	// 강제 타이핑 이벤트용
+	
+	// 타이핑할 문장
+	FString TargetString;
+	// 현재까지 타이핑한 문장
+	FString CurrentString;
+	// 인덱스
+	int32 TypeIndex = 0;
+	// 타이머 핸들
+	FTimerHandle TypingTimerHandle;
+	
+	void StartAutoTyping(const FString& InMessage);
+	void TypeNextCharacter();
+	void HideCursorAndScheduleNext();
+	
+	// 엔딩 용
+	void EndingBegin();
 };
