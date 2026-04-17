@@ -5,9 +5,11 @@
 #include "EnhancedInputComponent.h"
 #include "SurveyCharacterAnimInstance.h"
 #include "SurveyMonitorWidget.h"
+#include "SurveySaveGame.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/WidgetInteractionComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ASurveyCharacter::ASurveyCharacter()
@@ -75,6 +77,22 @@ void ASurveyCharacter::BeginPlay()
           }
        }
     }
+	
+	if (UGameplayStatics::DoesSaveGameExist(TEXT("Slot1"), 0))
+	{
+		if (const USurveySaveGame* SaveData = Cast<USurveySaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("Slot1"), 0)))
+		{
+			if (SaveData->bHasCleared)
+			{
+				if (BodyMesh)
+				{
+					BodyMesh->SetVisibility(false, true);
+				}
+				UE_LOG(LogTemp, Warning, TEXT("Save data loaded: Player has cleared the survey. Hiding character mesh."));
+			}
+		}
+		
+	}
 }
 
 void ASurveyCharacter::StartForcedSequence(const TArray<FVector2D>& TargetUIPositions, float Speed)
@@ -179,6 +197,11 @@ void ASurveyCharacter::SimulateClick()
         WidgetInteraction->PressPointerKey(EKeys::LeftMouseButton);
         WidgetInteraction->ReleasePointerKey(EKeys::LeftMouseButton);
     }
+	
+	if (MouseForceClickSound)
+	{
+		UGameplayStatics::PlaySound2D(this, MouseForceClickSound);
+	}
 }
 
 // Called every frame
@@ -302,11 +325,23 @@ void ASurveyCharacter::Tick(float DeltaTime)
 
 void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
 {
-   if (bIsForcedMoving || !bEnableMouseInput) return;
+   if (bIsForcedMoving || !bEnableMouseInput)
+   {
+   	if (MouseClickDeniedSound)
+   	{
+   		UGameplayStatics::PlaySound2D(this, MouseClickDeniedSound);
+   	}
+   	return;
+   }
    if (WidgetInteraction)
    {
       WidgetInteraction->PressPointerKey(EKeys::LeftMouseButton);
    }
+	
+	if (MouseClickSound)
+	{
+		UGameplayStatics::PlaySound2D(this, MouseClickSound);
+	}
 }
 
 void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)

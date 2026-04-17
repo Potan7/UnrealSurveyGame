@@ -49,6 +49,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ending")
 	TSubclassOf<UUserWidget> EndingWidgetClass;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SFX")
+	class UAudioComponent* BackgroundAudioComponent;
+	
 	
 protected:
 	virtual void NativeConstruct() override;
@@ -82,6 +85,12 @@ protected:
 	FName CurrentEventTrigger;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
+	UDataTable* SurveyFirstDataTable;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
+	UDataTable* SurveySecondDataTable;
+	
+	UPROPERTY()
 	UDataTable* SurveyDataTable;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category= "Data")
@@ -122,4 +131,17 @@ protected:
 	
 	// 엔딩 용
 	void EndingBegin();
+	
+	// 사운드
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SFX")
+	class USoundBase* TypingSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SFX")
+	class USoundBase* BlackOutSound;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "SFX")
+	UAudioComponent* PlayingSoundComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	USoundBase* BackgroundNoiseSound;
 };

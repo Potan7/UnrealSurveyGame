@@ -3,12 +3,15 @@
 
 #include "SurveyMonitorWidget.h"
 #include "SurveyCharacter.h"
+#include "SurveySaveGame.h"
+#include "Components/AudioComponent.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/EditableTextBox.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
+#include "Kismet/GameplayStatics.h"
 
 void USurveyMonitorWidget::NativeConstruct()
 {
@@ -19,9 +22,21 @@ void USurveyMonitorWidget::NativeConstruct()
 	{
 		MouseSlot = Cast<UCanvasPanelSlot>(Mouse->Slot);
 	}
-
-	if (SurveyDataTable)
+	
+	if (SurveyFirstDataTable && SurveySecondDataTable)
 	{
+		SurveyDataTable = SurveyFirstDataTable;
+		if (UGameplayStatics::DoesSaveGameExist(TEXT("Slot1"), 0))
+		{
+			if (const USurveySaveGame* SaveData = Cast<USurveySaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("Slot1"), 0)))
+			{
+				if (SaveData->bHasCleared)
+				{
+					SurveyDataTable = SurveySecondDataTable;
+				}
+			}
+		}
+		
 		SurveyRowNames = SurveyDataTable->GetRowNames();
 	}
 
@@ -58,7 +73,14 @@ void USurveyMonitorWidget::UpdateMonitorUI(const FSurveyData& SurveyData)
 		       *SurveyData.EventTrigger.ToString());
 
 		// Mouse 이벤트: 한 프레임 뒤에(지오메트리 갱신 후) 강제 이동 시작
-		if (CurrentEventTrigger == TEXT("Mouse"))
+		if (CurrentEventTrigger == TEXT("Sensor"))
+		{
+			if (BackgroundNoiseSound)
+			{
+				PlayingSoundComponent = UGameplayStatics::SpawnSound2D(this, BackgroundNoiseSound);
+			}
+		}
+		else if (CurrentEventTrigger == TEXT("Mouse"))
 		{
 			if (Character)
 			{
@@ -76,7 +98,7 @@ void USurveyMonitorWidget::UpdateMonitorUI(const FSurveyData& SurveyData)
 						TArray<FVector2D> Targets;
 						Targets.Add(GetButtonPosition(4));
 						Targets.Add(GetNextButtonPosition());
-						Character->StartForcedSequence(Targets, 6.0f);
+						Character->StartForcedSequence(Targets, 5.0f);
 					}
 				});
 			}
@@ -98,8 +120,32 @@ void USurveyMonitorWidget::UpdateMonitorUI(const FSurveyData& SurveyData)
 				WidgetSwitch->SetActiveWidgetIndex(2);
 			}
 			
-			GetWorld()->GetTimerManager().SetTimer(TypingTimerHandle, this, &USurveyMonitorWidget::EndingBegin, 2.5f, false);
+			if (BackgroundAudioComponent)
+			{
+				BackgroundAudioComponent->Stop();
+			}
+			if (PlayingSoundComponent)
+			{
+				PlayingSoundComponent->Stop();
+			}
+			
+			if (USurveySaveGame* SaveGameInstance = Cast<USurveySaveGame>(UGameplayStatics::CreateSaveGameObject(USurveySaveGame::StaticClass())))
+			{
+				SaveGameInstance->bHasCleared = true;
+				UGameplayStatics::SaveGameToSlot(SaveGameInstance, TEXT("Slot1"), 0);
+			}
+			
+			
+			GetWorld()->GetTimerManager().SetTimer(TypingTimerHandle, this, &USurveyMonitorWidget::EndingBegin, 3.0f, false);
 		}
+		else if (CurrentEventTrigger == TEXT("End2"))
+		{
+			if (WidgetSwitch)
+			{
+				WidgetSwitch->SetActiveWidgetIndex(2);
+			}
+		}
+		
 	}
 }
 
@@ -141,7 +187,7 @@ void USurveyMonitorWidget::HandleButtonClick(const int32 ClickedIndex)
 
 			Targets.Add(GetNextButtonPosition());
 
-			Character->StartForcedSequence(Targets);
+			Character->StartForcedSequence(Targets, 12);
 
 			if (ClickedIndex == 4)
 			{
@@ -190,6 +236,11 @@ void USurveyMonitorWidget::TypeNextCharacter()
           // 글자와 함께 커서(|) 표시
           TextBox->SetText(FText::FromString(CurrentString + TEXT("|")));
        }
+    	
+    	if (TypingSound)
+    	{
+    		UGameplayStatics::PlaySound2D(this, TypingSound);
+    	}
 
        // 1. 글자를 친 후 커서가 켜진 채로 유지되는 시간
        const float ShowCursorDelay = FMath::RandRange(0.4f, 0.7f);
@@ -259,6 +310,11 @@ void USurveyMonitorWidget::EndingBegin()
 	{
 		auto* EndingWidget = CreateWidget<UUserWidget>(GetWorld(), EndingWidgetClass);
 		EndingWidget->AddToViewport(100);
+	}
+	
+	if (BlackOutSound)
+	{
+		UGameplayStatics::PlaySound2D(this, BlackOutSound);
 	}
 }
 

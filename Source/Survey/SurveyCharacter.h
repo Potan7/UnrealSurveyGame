@@ -71,6 +71,15 @@ protected:
 	
 	FVector2D MouseInputDelta;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sound")
+	USoundBase* MouseClickSound;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sound")
+	USoundBase* MouseForceClickSound;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sound")
+	USoundBase* MouseClickDeniedSound;
+	
 	void OnMousePressed(const FInputActionValue& Value);
 	void OnMouseRelease(const FInputActionValue& Value);
 	
