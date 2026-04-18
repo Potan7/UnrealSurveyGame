@@ -77,6 +77,10 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	class UButton* BeginButton;
+	
+	// 게임 시작 시 나오는 검은 창
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UImage* Fade;
 
 	UPROPERTY()
 	class UCanvasPanelSlot* MouseSlot;
@@ -144,4 +148,12 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
 	USoundBase* BackgroundNoiseSound;
+	
+	// 페이드 애니메이션
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	class UWidgetAnimation* FadeOutAnim;
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "Monitor")
+	void StartFadeOut();
 };

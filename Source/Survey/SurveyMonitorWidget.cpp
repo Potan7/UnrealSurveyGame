@@ -3,6 +3,7 @@
 
 #include "SurveyMonitorWidget.h"
 #include "SurveyCharacter.h"
+#include "SurveyGameMode.h"
 #include "SurveySaveGame.h"
 #include "Components/AudioComponent.h"
 #include "Components/Button.h"
@@ -54,6 +55,11 @@ void USurveyMonitorWidget::NativeConstruct()
 	if (BeginButton)
 	{
 		BeginButton->OnClicked.AddDynamic(this, &USurveyMonitorWidget::ShowNextSurvey);
+	}
+	
+	if (ASurveyGameMode* Gm = GetWorld()->GetAuthGameMode<ASurveyGameMode>())
+	{
+		Gm->OnGameStart.AddDynamic(this, &USurveyMonitorWidget::StartFadeOut);
 	}
 
 	SurveyIndex = -1;
@@ -315,6 +321,19 @@ void USurveyMonitorWidget::EndingBegin()
 	if (BlackOutSound)
 	{
 		UGameplayStatics::PlaySound2D(this, BlackOutSound);
+	}
+}
+
+void USurveyMonitorWidget::StartFadeOut()
+{
+	UE_LOG(LogTemp, Warning, TEXT("StartFadeOut called"));
+	if (FadeOutAnim)
+	{
+		PlayAnimation(FadeOutAnim);
+	}
+	else
+	{
+		Fade->SetVisibility(ESlateVisibility::Hidden);
 	}
 }
 

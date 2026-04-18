@@ -4,6 +4,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "SurveyCharacterAnimInstance.h"
+#include "SurveyGameMode.h"
 #include "SurveyMonitorWidget.h"
 #include "SurveySaveGame.h"
 #include "Camera/CameraComponent.h"
@@ -32,6 +33,17 @@ ASurveyCharacter::ASurveyCharacter()
     // 물리 레이캐스트 대신 Custom 방식으로 변경
     WidgetInteraction->InteractionSource = EWidgetInteractionSource::Custom;
     WidgetInteraction->InteractionDistance = 100.0f;
+}
+
+void ASurveyCharacter::OnGameStarted()
+{
+	
+	UE_LOG(LogTemp, Warning, TEXT("Game Started: Returning control to character and starting monitor fade-out"));
+	bIsGameStarted = true;
+	// 카메라가 자신으로 돌아온 뒤 시작
+	// 모니터를 점점 활성화 시키고
+	// 입력을 활성화
+	
 }
 
 // Called when the game starts or when spawned
@@ -92,6 +104,11 @@ void ASurveyCharacter::BeginPlay()
 			}
 		}
 		
+	}
+	
+	if (ASurveyGameMode* Gm = GetWorld()->GetAuthGameMode<ASurveyGameMode>())
+	{
+		Gm->OnGameStart.AddDynamic(this, &ASurveyCharacter::OnGameStarted);
 	}
 }
 
@@ -209,6 +226,8 @@ void ASurveyCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    if (!bIsGameStarted && !bIsForcedMoving) return;
+
     if (bIsForcedMoving)
     {
         UpdateForcedMovement(DeltaTime);
@@ -222,17 +241,11 @@ void ASurveyCharacter::Tick(float DeltaTime)
       {
           FVector CurrentLocation = MouseMesh->GetRelativeLocation();
 
-         const FName& Event = MonitorWidget->GetCurrentEventTrigger();
-
-          if (Event == TEXT("Sensor"))
+          if (const FName& Event = MonitorWidget->GetCurrentEventTrigger(); Event == TEXT("Sensor"))
           {
              // UE_LOG(LogTemp, Warning, TEXT("Sensor event triggered: Reducing mouse sensitivity"));
              bIsSensitivityReduced = true;
           }
-         else if (Event == TEXT("Agree"))
-         {
-            // 강제 동의 이벤트
-         }
          
          CurrentModifier = FMath::FInterpTo(CurrentModifier, TargetModifier, DeltaTime, 1.2f);
           
@@ -309,7 +322,7 @@ void ASurveyCharacter::Tick(float DeltaTime)
           const FTransform RelativeTargetTransform = WorldTargetTransform.GetRelativeTransform(BodyMesh->GetComponentTransform());
               
           AnimInstance->RightHandTarget = RelativeTargetTransform; 
-          AnimInstance->bEnableHandIK = true;
+          
        }
        
        // 4. 입력 처리
@@ -325,6 +338,8 @@ void ASurveyCharacter::Tick(float DeltaTime)
 
 void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
 {
+   if (!bIsGameStarted) return;
+
    if (bIsForcedMoving || !bEnableMouseInput)
    {
    	if (MouseClickDeniedSound)
@@ -346,7 +361,7 @@ void ASurveyCharacter::OnMousePressed(const FInputActionValue& Value)
 
 void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)
 {
-   if (bIsForcedMoving || !bEnableMouseInput) return;
+   if (!bIsGameStarted || bIsForcedMoving || !bEnableMouseInput) return;
    if (WidgetInteraction)
    {
       WidgetInteraction->ReleasePointerKey(EKeys::LeftMouseButton);
@@ -355,7 +370,7 @@ void ASurveyCharacter::OnMouseRelease(const FInputActionValue& Value)
 
 void ASurveyCharacter::OnMouseMove(const FInputActionValue& Value)
 {
-      if (bIsForcedMoving || !bEnableMouseInput) return;
+      if (!bIsGameStarted || bIsForcedMoving || !bEnableMouseInput) return;
       MouseInputDelta = Value.Get<FVector2D>();
 }
 

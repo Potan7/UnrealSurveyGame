@@ -15,6 +15,9 @@ public:
 	// Sets default values for this character's properties
 	ASurveyCharacter();
 	
+	UFUNCTION()
+	void OnGameStarted();
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	class AActor* TargetMouseActor;
 
@@ -26,9 +29,6 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	FVector2D MonitorRes = FVector2D(1920.0f, 1080.0f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	class USurveyMonitorWidget* MonitorWidgetInstance;
 
 	FVector InitialMouseLocation;
 	
@@ -95,6 +95,7 @@ public:
 	void SetMouseInput(const bool bSet) { bEnableMouseInput = bSet; }
 
 private:
+	bool bIsGameStarted = false;
 	bool bEnableMouseInput = true;
 	bool bIsForcedMoving = false;
 	TArray<FVector2D> ForcedTargets;
